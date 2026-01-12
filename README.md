@@ -1,123 +1,99 @@
-Plan: Django REST Framework RealWorld API Backend
-Implement a RealWorld-style API (Conduit backend) in the existing django-rest-framework-realworld folder using Django 5.x, DRF, and MySQL. The workspace already has Django 6.0.1 and DRF 3.16.1 available in the tutorial virtual environment.
+# Django REST Framework – RealWorld API (Phases 1–3)
 
-1. Project & App Structure
-django-rest-framework-realworld/
-├── manage.py
-├── requirements.txt
-├── conduit/                    # Project config
-│   ├── __init__.py
-│   ├── settings.py
-│   ├── urls.py
-│   ├── wsgi.py
-│   └── asgi.py
-├── authentication/             # Custom User + JWT auth
-│   ├── models.py
-│   ├── serializers.py
-│   ├── views.py
-│   ├── urls.py
-│   ├── backends.py             # JWT auth backend
-│   └── renderers.py
-├── profiles/                   # User profiles + following
-│   ├── models.py
-│   ├── serializers.py
-│   ├── views.py
-│   └── urls.py
-└── articles/                   # Articles, Comments, Tags
-    ├── models.py
-    ├── serializers.py
-    ├── views.py
-    ├── urls.py
-    └── renderers.py
+This project implements the initial backend for a RealWorld-style API using **Django 5.x**, **Django REST Framework**, and **MySQL**, following an **Agentic Coding** workflow.
 
-2. Required Settings Changes
-Configure conduit/settings.py with:
+---
 
-Custom User model: AUTH_USER_MODEL = 'authentication.User'
-MySQL database: Use django.db.backends.mysql with mysqlclient driver
-Installed apps: Add rest_framework, authentication, profiles, articles
-REST Framework config: Custom renderers, JWT auth class, pagination, exception handling
-CORS headers: Add django-cors-headers for frontend compatibility
-3. Models & Relationships
-Model	App	Key Fields	Relationships
-User	authentication	email (unique), username, password, bio, image	-
-Profile	profiles	user, bio, image	OneToOne → User; ManyToMany follows (self-referential)
-Article	articles	slug, title, description, body, created_at, updated_at	ForeignKey → User (author); ManyToMany → Tag; ManyToMany → User (favorites)
-Comment	articles	body, created_at, updated_at	ForeignKey → Article; ForeignKey → User (author)
-Tag	articles	tag (unique)	ManyToMany ← Article
-4. API Responsibilities per Endpoint
-Endpoint	Method	Responsibility
-/api/users	POST	Register new user
-/api/users/login	POST	Authenticate, return JWT
-/api/user	GET/PUT	Get/update current user (auth required)
-/api/profiles/:username	GET	Get public profile
-/api/profiles/:username/follow	POST/DELETE	Follow/unfollow user
-/api/articles	GET/POST	List articles (with filters), create article
-/api/articles/feed	GET	Get followed users' articles
-/api/articles/:slug	GET/PUT/DELETE	CRUD single article
-/api/articles/:slug/favorite	POST/DELETE	Favorite/unfavorite
-/api/articles/:slug/comments	GET/POST	List/create comments
-/api/articles/:slug/comments/:id	DELETE	Delete comment
-/api/tags	GET	List all tags
-5. Implementation Order
-Project setup — Create Django project conduit, configure MySQL, add requirements.txt
-Authentication app — Custom User model with email login, JWT token generation, registration/login views
-Profiles app — Profile model, follow/unfollow logic, profile serializer
-Articles app (core) — Article, Tag, Comment models with relationships
-Article serializers & views — CRUD endpoints, filtering, pagination
-Favorites & Feed — Add favorite/unfavorite actions, implement feed endpoint
-Comments endpoints — Comment CRUD nested under articles
-Tags endpoint — Simple list view for all tags
-Final wiring — Connect all URLs to main router, add permissions, test
-Files to Create
-File	Purpose
-manage.py	Django management script
-requirements.txt	Dependencies: Django, DRF, mysqlclient, PyJWT, django-cors-headers
-conduit/settings.py	MySQL config, custom user, DRF settings
-conduit/urls.py	Root URL router including /api/ namespace
-authentication/models.py	Custom User model with AbstractBaseUser
-authentication/serializers.py	Registration, login, user serializers
-authentication/views.py	RegistrationAPIView, LoginAPIView, UserRetrieveUpdateAPIView
-authentication/backends.py	JWT authentication backend
-profiles/models.py	Profile with follow ManyToMany
-profiles/views.py	ProfileRetrieveAPIView, FollowAPIView
-articles/models.py	Article, Comment, Tag models
-articles/serializers.py	Article, Comment, Tag serializers with nested author
-articles/views.py	ArticleViewSet, CommentViewSet, TagListAPIView
+## Phase 1 — Project Setup & Core Models
 
-# django-rest-framework-realworld
-Plan: RealWorld API — Phase 1: Project Setup
-Based on your decisions, here's the refined plan for Phase 1: Django Project Initialization with MySQL.
+**Goal:**
+Establish a stable project structure and database schema.
 
-Phase 1 Scope
-Create the Django 5.x project skeleton, configure MySQL, and establish the basic app structure without authentication.
+**Key Tasks:**
 
-Steps
-Create requirements.txt in django-rest-framework-realworld with Django 5.x, djangorestframework, mysqlclient, and django-cors-headers only (no JWT packages).
+* Initialize Django project and apps (`users`, `articles`, `tags`).
+* Configure MySQL via environment variables.
+* Define core models:
 
-Initialize Django project — Run django-admin startproject conduit . to create manage.py and conduit/ config folder.
+  * User
+  * Article
+  * Comment
+  * Tag
+* Set up relationships:
 
-Create three apps — Run python manage.py startapp for users, articles, and profiles apps.
+  * Article → author (nullable)
+  * Article → tags (ManyToMany)
+  * Comment → author (nullable)
+  * Comment → article
+* Add timestamps to all models.
+* Review domain assumptions before applying migrations.
+* Generate and apply database migrations.
 
-Configure conduit/settings.py:
+**Result:**
+A clean, validated database schema with no business logic.
 
-Set DATABASES to MySQL backend with placeholder credentials
-Add rest_framework, corsheaders, users, articles, profiles to INSTALLED_APPS
-Configure REST_FRAMEWORK dict with pagination settings
-Add CORS middleware configuration
-Create empty model stubs in each app's models.py as placeholders for Phase 2.
+---
 
-Wire up conduit/urls.py with /api/ prefix and include paths for users, articles, and tags endpoints.
+## Phase 2 — Serialization & Domain Logic
 
-Files to Create/Modify — Phase 1
-File	Action
-requirements.txt	Create
-manage.py	Create (via django-admin)
-conduit/__init__.py	Create (via django-admin)
-conduit/settings.py	Create + configure MySQL & DRF
-conduit/urls.py	Create + wire API routes
-conduit/wsgi.py	Create (via django-admin)
-conduit/asgi.py	Create (via django-admin)
-users/__init__.py, models.py, views.py, urls.py, etc.	Create (via startapp)
-articles/__init__.py, models.py, views.py, urls.py, etc.	Create (via startapp)
-profiles/__init__.py, models.py, views.py, urls.py, etc.	Create (via startapp)
+**Goal:**
+Expose models through serializers with correct validation and domain behavior.
+
+**Key Tasks:**
+
+* Implement serializers for all core models.
+* Enforce domain rules:
+
+  * `password` is required on user creation, optional on update.
+* Implement article slug generation.
+* Handle RealWorld API conventions:
+
+  * Accept `tagList` (camelCase) in requests.
+  * Map to internal tag handling (snake_case, ManyToMany).
+* Explicitly implement:
+
+  * Tag creation and association during article creation.
+  * Author assignment from `request.user`.
+* Optimize queries using `select_related` and `prefetch_related`.
+
+**Result:**
+Serializers enforce domain rules and match the RealWorld API specification.
+
+---
+
+## Phase 3 — API Views & Manual Validation
+
+**Goal:**
+Complete API endpoints and validate behavior manually.
+
+**Key Tasks:**
+
+* Implement API views and routes:
+
+  * `/api/users`
+  * `/api/articles`
+  * `/api/tags`
+* Start development server.
+* Manually test APIs using Postman or curl:
+
+  * User creation and update
+  * Article creation with tags
+  * Tag listing
+  * Author association
+* Fix domain issues discovered during testing.
+* Defer automated tests until API contracts stabilize.
+
+**Result:**
+Fully functional API endpoints validated through manual testing.
+
+---
+
+## Agentic Coding Principles
+
+* Work in explicit phases.
+* Review and confirm domain decisions before mutations.
+* Do not allow agents to redefine domain rules.
+* Validate manually before automation.
+* Add automated tests only after API contracts are stable.
+
+---
