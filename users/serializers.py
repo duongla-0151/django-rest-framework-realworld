@@ -1,9 +1,10 @@
 """
 Serializers for users app.
 """
-from rest_framework import serializers
 
+from rest_framework import serializers
 from .models import User
+from constants import USER_IMAGE_URL_MAX_LENGTH, USER_BIO_DEFAULT
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -17,7 +18,7 @@ class UserSerializer(serializers.ModelSerializer):
         max_length=128,
         min_length=8,
         write_only=True,
-        required=True  # Required for creation, optional for update via update()
+        required=True
     )
 
     class Meta:
@@ -31,7 +32,7 @@ class UserSerializer(serializers.ModelSerializer):
             'image',
             'date_joined',
         ]
-        read_only_fields = ['id', 'date_joined']
+        read_only_fields = ('id', 'date_joined')
 
     def create(self, validated_data):
         """Create user with properly hashed password. Password is required."""

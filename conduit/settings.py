@@ -186,9 +186,8 @@ if DEBUG:
 # CORS configuration
 # https://github.com/adamchainz/django-cors-headers
 
-CORS_ALLOWED_ORIGINS = os.environ.get(
-    'CORS_ALLOWED_ORIGINS',
-    'http://localhost:3000,http://127.0.0.1:3000'
-).split(',')
+CORS_ALLOWED_ORIGINS = [
+    origin.strip() for origin in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if origin.strip()
+]
 
 CORS_ALLOW_CREDENTIALS = True

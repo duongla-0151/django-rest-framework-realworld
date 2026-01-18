@@ -1,17 +1,20 @@
 """
 Article, Tag, and Comment models for the conduit application.
 """
+
 from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
 import uuid
+from constants import ARTICLE_TITLE_MAX_LENGTH, ARTICLE_TAG_MAX_LENGTH, ARTICLE_DESCRIPTION_DEFAULT
+
 
 
 class Tag(models.Model):
     """
     Tag model for categorizing articles.
     """
-    tag = models.CharField(max_length=64, unique=True)
+    tag = models.CharField(max_length=ARTICLE_TAG_MAX_LENGTH, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -22,15 +25,15 @@ class Tag(models.Model):
         return self.tag
 
 
+
 class Article(models.Model):
     """
     Article model representing blog posts.
-
     Uses a custom slug generation with slugify + UUID suffix for uniqueness.
     """
-    slug = models.SlugField(max_length=255, unique=True, db_index=True)
-    title = models.CharField(max_length=255)
-    description = models.TextField(blank=True, default='')
+    slug = models.SlugField(max_length=ARTICLE_TITLE_MAX_LENGTH, unique=True, db_index=True)
+    title = models.CharField(max_length=ARTICLE_TITLE_MAX_LENGTH)
+    description = models.TextField(blank=True, default=ARTICLE_DESCRIPTION_DEFAULT)
     body = models.TextField()
 
     # Relationships
@@ -75,10 +78,10 @@ class Article(models.Model):
         return f"{base_slug}-{unique_suffix}"
 
 
+
 class Comment(models.Model):
     """
     Comment model for article comments.
-
     Note: Comment API endpoints will be implemented in a future phase,
     but the model is defined here for relationship completeness.
     """

@@ -3,8 +3,11 @@ Serializers for articles app.
 """
 from rest_framework import serializers
 
+
 from .models import Article, Tag, Comment
 from users.serializers import UserSerializer
+from constants import ARTICLE_TITLE_MAX_LENGTH, ARTICLE_TAG_MAX_LENGTH, ARTICLE_DESCRIPTION_DEFAULT
+
 
 
 class TagSerializer(serializers.ModelSerializer):

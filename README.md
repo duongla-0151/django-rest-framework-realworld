@@ -97,3 +97,95 @@ Fully functional API endpoints validated through manual testing.
 * Add automated tests only after API contracts are stable.
 
 ---
+
+## Phase 4 — Authentication & Permissions
+
+**Goal:**
+Introduce authentication and authorization while preserving existing API contracts.
+
+**Key Decisions:**
+
+* Use **JWT-based authentication**.
+* Keep API behavior explicit; no implicit magic.
+* Authentication is required for:
+
+  * Creating articles
+  * Updating or deleting owned resources
+* Public read access remains unchanged.
+
+**Key Tasks:**
+
+* Integrate JWT authentication (e.g. `djangorestframework-simplejwt`).
+* Extend User serialization to include:
+
+  * token
+  * email
+  * username
+* Implement auth endpoints:
+
+  * `POST /api/users/login`
+  * `GET /api/user` (current authenticated user)
+* Protect endpoints using DRF permissions:
+
+  * `IsAuthenticated`
+  * Custom permission for resource ownership (author-only edit/delete).
+* Ensure anonymous requests:
+
+  * can read articles and tags
+  * cannot create or modify protected resources.
+
+**Manual Validation:**
+
+* Login returns a valid JWT token.
+* Authenticated requests include `Authorization: Token <jwt>`.
+* Unauthorized access returns `401` or `403` as appropriate.
+
+**Outcome:**
+Secure APIs with explicit authentication and ownership rules.
+
+---
+
+## Phase 5 — Integration Testing & Stability
+
+**Goal:**
+Lock down API behavior with meaningful automated tests after contracts stabilize.
+
+**Testing Strategy:**
+
+* Prefer **integration tests** over unit tests.
+* Test APIs at HTTP level using DRF test client.
+* Avoid over-mocking internal logic.
+
+**Key Tasks:**
+
+* Set up test database configuration.
+* Write integration tests for:
+
+  * User registration and login
+  * Authenticated article creation
+  * Permission enforcement (author vs non-author)
+  * Tag creation via article submission
+* Cover both:
+
+  * happy paths
+  * critical failure cases (401/403/400)
+
+**What NOT to Test:**
+
+* Django internals
+* DRF serializers in isolation
+* Implementation details
+
+**Outcome:**
+A stable, regression-safe API with confidence in core behaviors.
+
+---
+
+## Agentic Testing Principles
+
+* Do not write tests until API contracts are stable.
+* Tests validate **decisions**, not experiments.
+* Human validation precedes automation.
+* Agents generate tests only under explicit instruction.
+
+---
