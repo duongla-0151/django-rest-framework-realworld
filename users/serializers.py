@@ -15,9 +15,10 @@ class UserSerializer(serializers.ModelSerializer):
     Handles user creation and updates.
     Password is write-only for security.
     """
+    from constants import USER_PASSWORD_MIN_LENGTH, USER_PASSWORD_MAX_LENGTH
     password = serializers.CharField(
-        max_length=128,
-        min_length=8,
+        max_length=USER_PASSWORD_MAX_LENGTH,
+        min_length=USER_PASSWORD_MIN_LENGTH,
         write_only=True,
         required=True
     )

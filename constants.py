@@ -1,3 +1,6 @@
+# User password validation
+USER_PASSWORD_MIN_LENGTH = 8
+USER_PASSWORD_MAX_LENGTH = 128
 """
 Project-wide constants for models, serializers, and views.
 """
