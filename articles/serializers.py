@@ -59,6 +59,9 @@ class ArticleSerializer(serializers.ModelSerializer):
         """Create article with tags."""
         tag_list = validated_data.pop('tag_list', [])
 
+        # Remove 'request' if present (should not be, but for safety)
+        validated_data.pop('request', None)
+
         # Get author from context (set in view)
         request = self.context.get('request')
         author = None

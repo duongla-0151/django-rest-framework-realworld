@@ -5,6 +5,7 @@ Serializers for users app.
 from rest_framework import serializers
 from .models import User
 from constants import USER_IMAGE_URL_MAX_LENGTH, USER_BIO_DEFAULT
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -56,3 +57,23 @@ class UserSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+
+class AuthUserSerializer(serializers.ModelSerializer):
+    """
+    Lightweight serializer for login/current user endpoints, includes JWT token.
+    """
+    token = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            'email',
+            'username',
+            'token',
+        ]
+        read_only_fields = ('email', 'username', 'token')
+
+    def get_token(self, obj):
+        refresh = RefreshToken.for_user(obj)
+        return str(refresh.access_token)
