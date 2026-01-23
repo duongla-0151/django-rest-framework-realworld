@@ -1,0 +1,15 @@
+# Django REST Framework RealWorld API
+# Django 5.x
+Django>=5.0,<6.0
+
+# Django REST Framework
+djangorestframework>=3.14,<4.0
+
+# MySQL database driver (pure Python alternative)
+PyMySQL>=1.1,<2.0
+
+# CORS headers for frontend compatibility
+django-cors-headers>=4.3,<5.0
+
+# Environment variable loading from .env file
+python-dotenv>=1.0,<2.0
