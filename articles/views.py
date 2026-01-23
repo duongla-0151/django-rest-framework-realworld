@@ -5,6 +5,8 @@ Provides API endpoints for articles and tags management.
 """
 from rest_framework import generics, status
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from .permissions import IsAuthorOrReadOnly
 
 from .models import Article, Tag
 from .serializers import ArticleSerializer, TagSerializer
@@ -18,8 +20,27 @@ class ArticleListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = ArticleSerializer
     lookup_field = 'slug'
 
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated()]
+        return [AllowAny()]
+
+
     def get_queryset(self):
         return Article.objects.select_related('author').prefetch_related('tags', 'favorited_by').all()
+
+    def create(self, request, *args, **kwargs):
+        # Accept nested 'article' payload as per RealWorld spec
+        article_data = request.data.get('article', {})
+        serializer = self.get_serializer(data=article_data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        # Return response in RealWorld format
+        return Response({'article': serializer.data}, status=status.HTTP_201_CREATED, headers=headers)
+
+    def perform_create(self, serializer):
+        serializer.save(request=self.request)
 
 
 class ArticleRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
@@ -31,6 +52,7 @@ class ArticleRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView)
     """
     serializer_class = ArticleSerializer
     lookup_field = 'slug'
+    permission_classes = [IsAuthorOrReadOnly]
 
     def get_queryset(self):
         return Article.objects.select_related('author').prefetch_related('tags', 'favorited_by').all()
