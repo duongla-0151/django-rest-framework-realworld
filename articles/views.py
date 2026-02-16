@@ -6,21 +6,43 @@ Provides API endpoints for articles and tags management.
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
 from .permissions import IsAuthorOrReadOnly
 
 from .models import Article, Tag
 from .serializers import ArticleSerializer, TagSerializer
+from .filterset import ArticleFilterSet
 
 
 class ArticleListCreateAPIView(generics.ListCreateAPIView):
     """
-    GET  /api/articles/  - List all articles (with filtering)
+    GET  /api/articles/  - List all articles (with filtering, pagination, ordering)
     POST /api/articles/  - Create a new article
+    
+    Filtering:
+    - tag: Filter by tag name (e.g., ?tag=django)
+    - author: Filter by author username (e.g., ?author=john)
+    - favorited: Filter by user who favorited (e.g., ?favorited=john)
+    
+    Searching:
+    - search: Search in title and description (e.g., ?search=keyword)
+    
+    Ordering:
+    - ordering: Order by field (e.g., ?ordering=-created_at or ?ordering=title)
+    
+    Pagination:
+    - limit: Number of articles per page (default 20)
+    - offset: Starting position (e.g., ?limit=5&offset=10)
     """
 
     serializer_class = ArticleSerializer
     lookup_field = 'slug'
-    filterset_fields = []  # Not used, custom filtering below
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_class = ArticleFilterSet
+    search_fields = ['title', 'description', 'body']
+    ordering_fields = ['created_at', 'updated_at', 'title']
+    ordering = ['-created_at']
 
     def get_permissions(self):
         if self.request.method == 'POST':
@@ -28,20 +50,7 @@ class ArticleListCreateAPIView(generics.ListCreateAPIView):
         return [AllowAny()]
 
     def get_queryset(self):
-        return self.get_filtered_queryset()
-
-    def get_filtered_queryset(self):
-        qs = Article.objects.select_related('author').prefetch_related('tags', 'favorited_by').all()
-        tag = self.request.query_params.get('tag')
-        author = self.request.query_params.get('author')
-        favorited = self.request.query_params.get('favorited')
-        if tag:
-            qs = qs.filter(tags__tag=tag)
-        if author:
-            qs = qs.filter(author__username=author)
-        if favorited:
-            qs = qs.filter(favorited_by__username=favorited)
-        return qs.distinct()
+        return Article.objects.select_related('author').prefetch_related('tags', 'favorited_by').all()
 
     def create(self, request, *args, **kwargs):
         # Accept nested 'article' payload as per RealWorld spec
@@ -74,8 +83,15 @@ class ArticleRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView)
 
 class TagListAPIView(generics.ListAPIView):
     """
-    GET /api/tags/  - List all tags
+    GET /api/tags/  - List all tags (with pagination optionally disabled)
+    
+    Note: Pagination is disabled by default for tags, but can be included
+    by setting pagination_class in the view or via query parameters.
     """
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    pagination_class = None  # Tags don't need pagination
+    pagination_class = None  # Tags don't need pagination by default
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['tag']
+    ordering_fields = ['tag']
+    ordering = ['tag']
