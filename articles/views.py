@@ -17,17 +17,31 @@ class ArticleListCreateAPIView(generics.ListCreateAPIView):
     GET  /api/articles/  - List all articles (with filtering)
     POST /api/articles/  - Create a new article
     """
+
     serializer_class = ArticleSerializer
     lookup_field = 'slug'
+    filterset_fields = []  # Not used, custom filtering below
 
     def get_permissions(self):
         if self.request.method == 'POST':
             return [IsAuthenticated()]
         return [AllowAny()]
 
-
     def get_queryset(self):
-        return Article.objects.select_related('author').prefetch_related('tags', 'favorited_by').all()
+        return self.get_filtered_queryset()
+
+    def get_filtered_queryset(self):
+        qs = Article.objects.select_related('author').prefetch_related('tags', 'favorited_by').all()
+        tag = self.request.query_params.get('tag')
+        author = self.request.query_params.get('author')
+        favorited = self.request.query_params.get('favorited')
+        if tag:
+            qs = qs.filter(tags__tag=tag)
+        if author:
+            qs = qs.filter(author__username=author)
+        if favorited:
+            qs = qs.filter(favorited_by__username=favorited)
+        return qs.distinct()
 
     def create(self, request, *args, **kwargs):
         # Accept nested 'article' payload as per RealWorld spec

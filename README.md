@@ -181,6 +181,234 @@ A stable, regression-safe API with confidence in core behaviors.
 
 ---
 
+# Phase 6 — Permissions, Filtering, Pagination & Throttling
+
+**Goal:**
+Introduce production-grade API controls: **fine-grained permissions, flexible filtering, pagination, and request throttling**, while preserving RealWorld API contracts.
+
+---
+
+## Key Objectives
+
+* Enforce **role-based and object-level permissions**
+* Provide **query filtering & ordering**
+* Implement **API pagination**
+* Add **rate limiting (throttling)** for abuse protection
+* Maintain **explicit, predictable API behavior**
+
+---
+
+## Technical Scope
+
+### 1. Permissions
+
+**Goal:**
+Control access at both **view-level** and **object-level**.
+
+**Applied Permission Classes:**
+
+* `AllowAny` – Public read-only endpoints
+* `IsAuthenticated` – Authenticated-only endpoints
+* `IsAdminUser` – Admin-only operations
+* Custom permissions:
+
+  * Author-only modification of articles
+  * Author-only deletion of comments
+  * User-specific operations on profile & favorites
+
+**Rules:**
+
+* Anonymous users:
+
+  * Can read articles, tags, and public profiles
+  * Cannot create, modify, or favorite content
+* Authenticated users:
+
+  * Can create articles, comments, favorites
+  * Can modify only their own resources
+* Admin users:
+
+  * May bypass ownership checks when required
+
+---
+
+### 2. Filtering & Ordering
+
+**Goal:**
+Enable flexible querying of API resources using URL parameters.
+
+**Tools:**
+
+* `django-filter`
+* DRF filter backends:
+
+  * `DjangoFilterBackend`
+  * `OrderingFilter`
+  * `SearchFilter`
+
+**Implemented Filters (RealWorld spec):**
+
+```
+GET /api/articles?tag=foo
+GET /api/articles?author=bar
+GET /api/articles?favorited=john
+```
+
+**Ordering:**
+
+```
+GET /api/articles?ordering=-created_at
+```
+
+**Implementation:**
+
+* Install `django-filter`
+* Add filter backends in DRF settings
+* Define filtersets for:
+
+  * Articles
+  * Comments (if exposed)
+  * Profiles (optional)
+
+---
+
+### 3. Pagination
+
+**Goal:**
+Ensure scalable API responses for large datasets.
+
+**Pagination Strategies:**
+
+* `LimitOffsetPagination` (RealWorld-compatible)
+* Optional support for:
+
+  * `PageNumberPagination`
+
+**Supported Queries:**
+
+```
+GET /api/articles?limit=5&offset=10
+```
+
+**Rules:**
+
+* Set global default pagination
+* Allow per-view override when needed
+* Return metadata:
+
+  * total count
+  * next / previous links
+
+---
+
+### 4. Throttling (Rate Limiting)
+
+**Goal:**
+Protect API from abuse and accidental overuse.
+
+**Throttle Classes:**
+
+* `AnonRateThrottle`
+* `UserRateThrottle`
+* Custom throttles (if needed)
+
+**Recommended Limits:**
+
+| Scope          | Limit                |
+| -------------- | -------------------- |
+| Anonymous      | 100 requests / hour  |
+| Authenticated  | 1000 requests / hour |
+| Login endpoint | 10 attempts / minute |
+
+**Rules:**
+
+* Login endpoints should be **strictly throttled**
+* Read-heavy endpoints should be **lenient**
+* Write endpoints should be **moderately restricted**
+
+---
+
+## RealWorld API Enhancements
+
+### Required Endpoints
+
+```
+GET  /api/articles?tag=foo&author=bar
+GET  /api/articles/feed         (requires login)
+POST /api/articles/:slug/favorite   (requires login)
+GET  /api/articles?limit=5&offset=10
+```
+
+---
+
+### Behavior Rules
+
+| Endpoint                          | Permission                |
+| --------------------------------- | ------------------------- |
+| GET /api/articles                 | AllowAny                  |
+| GET /api/articles/feed            | IsAuthenticated           |
+| POST /api/articles                | IsAuthenticated           |
+| PUT /api/articles/:slug           | IsAuthenticated + IsOwner |
+| DELETE /api/articles/:slug        | IsAuthenticated + IsOwner |
+| POST /api/articles/:slug/favorite | IsAuthenticated           |
+
+---
+
+## Implementation Steps
+
+1. Add `django-filter` and configure filter backends.
+2. Define filtersets for articles.
+3. Implement pagination settings.
+4. Add throttling configuration.
+5. Implement feed endpoint.
+6. Implement article favorite/unfavorite endpoints.
+7. Apply permission classes per-view.
+8. Perform manual API validation.
+9. Add integration tests for:
+
+   * filtering
+   * pagination
+   * permissions
+   * throttling behavior
+
+---
+
+## Manual Validation Checklist
+
+* `/api/articles?tag=django` returns only matching articles
+* `/api/articles?author=john` returns only john’s articles
+* `/api/articles?limit=3&offset=5` paginates correctly
+* `/api/articles/feed` requires authentication
+* Unauthorized favorite → `401`
+* Excessive requests → `429 Too Many Requests`
+
+---
+
+## Agentic Execution Rules
+
+* Implement **one concern at a time**:
+
+  * permissions → filtering → pagination → throttling
+* After each step:
+
+  * run manual tests
+  * confirm behavior
+* Add automated tests only **after behavior is validated**
+* Never mix refactors with behavior changes in one step
+
+---
+
+## Outcome
+
+A **production-grade REST API** with:
+
+* Secure permission control
+* Powerful query filtering
+* Scalable pagination
+* Abuse-resistant throttling
+
+---
+
 ## Agentic Testing Principles
 
 * Do not write tests until API contracts are stable.
