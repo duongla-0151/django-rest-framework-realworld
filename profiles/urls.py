@@ -11,5 +11,5 @@ from . import views
 app_name = 'profiles'
 
 urlpatterns = [
-    # Profile endpoints will be added in future phases
+    path('profiles/<str:username>/follow', views.ProfileFollowAPIView.as_view(), name='profile-follow'),
 ]
