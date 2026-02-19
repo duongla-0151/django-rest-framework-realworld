@@ -10,10 +10,10 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import NotFound
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
-from .permissions import IsAuthorOrReadOnly
+from .permissions import IsAuthorOrReadOnly, IsCommentAuthor
 
-from .models import Article, Tag
-from .serializers import ArticleSerializer, TagSerializer
+from .models import Article, Tag, Comment
+from .serializers import ArticleSerializer, TagSerializer, CommentSerializer
 from .filterset import ArticleFilterSet
 
 
@@ -128,3 +128,75 @@ class ArticleFavoriteAPIView(APIView):
         article.save()
         serializer = ArticleSerializer(article, context={'request': request})
         return Response({'article': serializer.data}, status=status.HTTP_200_OK)
+
+
+class CommentListCreateAPIView(generics.ListCreateAPIView):
+    """
+    GET  /api/articles/:slug/comments  - List all comments for an article
+    POST /api/articles/:slug/comments  - Create a new comment
+    
+    Permissions:
+    - Anonymous users can read (GET)
+    - Only authenticated users can create (POST)
+    """
+    serializer_class = CommentSerializer
+    lookup_field = 'slug'
+    pagination_class = None  # Comments don't need pagination
+    ordering = ['-created_at']
+
+    def get_article(self):
+        """Get article by slug from URL kwargs."""
+        slug = self.kwargs.get('slug')
+        try:
+            return Article.objects.get(slug=slug)
+        except Article.DoesNotExist:
+            raise NotFound({'detail': 'Article not found.'})
+
+    def get_queryset(self):
+        """Get comments for the article."""
+        article = self.get_article()
+        return article.comments.select_related('author').all()
+
+    def get_permissions(self):
+        """Anonymous can read, only authenticated can create."""
+        if self.request.method == 'POST':
+            return [IsAuthenticated()]
+        return [AllowAny()]
+
+    def perform_create(self, serializer):
+        """Create comment with author from request.user and article from URL."""
+        article = self.get_article()
+        serializer.save(author=self.request.user, article=article)
+
+
+class CommentDestroyAPIView(generics.DestroyAPIView):
+    """
+    DELETE /api/articles/:slug/comments/:id  - Delete a comment
+    
+    Permissions:
+    - Only comment author can delete
+    - Non-author → 403
+    - Anonymous → 401
+    """
+    serializer_class = CommentSerializer
+    lookup_field = 'id'
+    lookup_url_kwarg = 'comment_id'
+    permission_classes = [IsCommentAuthor]
+
+    def get_article(self):
+        """Get article by slug from URL kwargs."""
+        slug = self.kwargs.get('slug')
+        try:
+            return Article.objects.get(slug=slug)
+        except Article.DoesNotExist:
+            raise NotFound({'detail': 'Article not found.'})
+
+    def get_queryset(self):
+        """Get comments for the article."""
+        article = self.get_article()
+        return article.comments.all()
+
+    def delete(self, request, *args, **kwargs):
+        """Delete comment and return 204 No Content."""
+        response = super().delete(request, *args, **kwargs)
+        return Response(status=status.HTTP_204_NO_CONTENT)
