@@ -8,7 +8,7 @@ from .models import Article
 class ArticleFilterSet(django_filters.FilterSet):
     """
     FilterSet for Article model.
-    
+
     Supports filtering by:
     - tag: Filter articles by tag name
     - author: Filter articles by author username

@@ -6,6 +6,8 @@ Provides API endpoints for articles and tags management.
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.views import APIView
+from rest_framework.exceptions import NotFound
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from .permissions import IsAuthorOrReadOnly
@@ -19,18 +21,18 @@ class ArticleListCreateAPIView(generics.ListCreateAPIView):
     """
     GET  /api/articles/  - List all articles (with filtering, pagination, ordering)
     POST /api/articles/  - Create a new article
-    
+
     Filtering:
     - tag: Filter by tag name (e.g., ?tag=django)
     - author: Filter by author username (e.g., ?author=john)
     - favorited: Filter by user who favorited (e.g., ?favorited=john)
-    
+
     Searching:
     - search: Search in title and description (e.g., ?search=keyword)
-    
+
     Ordering:
     - ordering: Order by field (e.g., ?ordering=-created_at or ?ordering=title)
-    
+
     Pagination:
     - limit: Number of articles per page (default 20)
     - offset: Starting position (e.g., ?limit=5&offset=10)
@@ -84,7 +86,7 @@ class ArticleRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView)
 class TagListAPIView(generics.ListAPIView):
     """
     GET /api/tags/  - List all tags (with pagination optionally disabled)
-    
+
     Note: Pagination is disabled by default for tags, but can be included
     by setting pagination_class in the view or via query parameters.
     """
@@ -95,3 +97,34 @@ class TagListAPIView(generics.ListAPIView):
     search_fields = ['tag']
     ordering_fields = ['tag']
     ordering = ['tag']
+
+
+class ArticleFavoriteAPIView(APIView):
+    """
+    POST   /api/articles/:slug/favorite   - Favorite an article
+    DELETE /api/articles/:slug/favorite   - Unfavorite an article
+    Only authenticated users. Idempotent. Returns updated article.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get_article(self, slug):
+        try:
+            return Article.objects.select_related('author').prefetch_related('tags', 'favorited_by').get(slug=slug)
+        except Article.DoesNotExist:
+            raise NotFound('Article not found.')
+
+    def post(self, request, slug):
+        article = self.get_article(slug)
+        user = request.user
+        article.favorited_by.add(user)  # Idempotent
+        article.save()
+        serializer = ArticleSerializer(article, context={'request': request})
+        return Response({'article': serializer.data}, status=status.HTTP_200_OK)
+
+    def delete(self, request, slug):
+        article = self.get_article(slug)
+        user = request.user
+        article.favorited_by.remove(user)  # Idempotent
+        article.save()
+        serializer = ArticleSerializer(article, context={'request': request})
+        return Response({'article': serializer.data}, status=status.HTTP_200_OK)
