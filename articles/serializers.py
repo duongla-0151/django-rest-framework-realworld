@@ -34,6 +34,7 @@ class ArticleSerializer(serializers.ModelSerializer):
         default=[]
     )
     favorites_count = serializers.SerializerMethodField()
+    favorited = serializers.SerializerMethodField()
 
     class Meta:
         model = Article
@@ -47,6 +48,7 @@ class ArticleSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
             'favorites_count',
+            'favorited',
             'author',
         ]
         read_only_fields = ['slug', 'created_at', 'updated_at', 'author']
@@ -54,6 +56,12 @@ class ArticleSerializer(serializers.ModelSerializer):
     def get_favorites_count(self, obj):
         """Return the number of users who favorited this article."""
         return obj.favorited_by.count()
+
+    def get_favorited(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.favorited_by.filter(pk=request.user.pk).exists()
+        return False
 
     def create(self, validated_data):
         """Create article with tags."""

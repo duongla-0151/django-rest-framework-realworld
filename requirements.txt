@@ -4,7 +4,12 @@ Django>=5.0,<6.0
 
 # Django REST Framework
 djangorestframework>=3.14,<4.0
-djangorestframework-extensions
+
+# Django Filters
+django-filter>=24.1,<25.0
+
+# Django Extensions
+django-extensions>=3.2,<4.0
 
 # Django REST Framework Simple JWT
 djangorestframework-simplejwt>=5.3,<6.0
@@ -12,8 +17,15 @@ djangorestframework-simplejwt>=5.3,<6.0
 # MySQL database driver (pure Python alternative)
 PyMySQL>=1.1,<2.0
 
+# Cryptography for MySQL auth
+cryptography>=41.0,<42.0
+
 # CORS headers for frontend compatibility
 django-cors-headers>=4.3,<5.0
 
 # Environment variable loading from .env file
 python-dotenv>=1.0,<2.0
+
+# Testing
+pytest>=7.4,<8.0
+pytest-django>=4.7,<5.0
